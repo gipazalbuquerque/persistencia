@@ -1,473 +1,390 @@
-print('teste')
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Formulário com Mapa</title>
-    
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
-    
-    <!-- Firebase -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-firestore-compat.min.js"></script>
-    
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            backdrop-filter: blur(10px);
-        }
-        
-        .header {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-        
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-        
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-        
-        .content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0;
-            min-height: 600px;
-        }
-        
-        .form-section {
-            padding: 40px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        
-        .form-group {
-            margin-bottom: 25px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #333;
-            font-size: 1rem;
-        }
-        
-        .form-group input,
-        .form-group textarea {
-            width: 100%;
-            padding: 15px;
-            border: 2px solid #e1e5e9;
-            border-radius: 12px;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            background: #fafbfc;
-        }
-        
-        .form-group input:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #4facfe;
-            background: white;
-            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
-            transform: translateY(-1px);
-        }
-        
-        .form-group textarea {
-            resize: vertical;
-            min-height: 120px;
-        }
-        
-        .coordinates {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-        
-        .submit-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 15px 40px;
-            border-radius: 12px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-        }
-        
-        .submit-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
-        }
-        
-        .submit-btn:active {
-            transform: translateY(0);
-        }
-        
-        .submit-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .map-section {
-            position: relative;
-            background: #f8f9fa;
-        }
-        
-        #map {
-            height: 100%;
-            min-height: 600px;
-        }
-        
-        .map-info {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            z-index: 1000;
-            backdrop-filter: blur(10px);
-        }
-        
-        .map-info h3 {
-            margin-bottom: 10px;
-            color: #333;
-            font-size: 1rem;
-        }
-        
-        .map-info p {
-            margin: 5px 0;
-            color: #666;
-            font-size: 0.9rem;
-        }
-        
-        .status-message {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 12px;
-            font-weight: 600;
-            text-align: center;
-            opacity: 0;
-            transition: all 0.3s ease;
-        }
-        
-        .status-message.show {
-            opacity: 1;
-            transform: translateY(-5px);
-        }
-        
-        .status-message.success {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
-        }
-        
-        .status-message.error {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-            color: white;
-        }
-        
-        @media (max-width: 768px) {
-            .content {
-                grid-template-columns: 1fr;
-            }
-            
-            .form-section {
-                padding: 30px 20px;
-            }
-            
-            .header h1 {
-                font-size: 2rem;
-            }
-            
-            .coordinates {
-                grid-template-columns: 1fr;
-            }
-            
-            .map-info {
-                position: relative;
-                top: auto;
-                right: auto;
-                margin: 20px;
-            }
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Locais de Meditação Próximos</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+
+  <!-- Firebase (compat) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-firestore-compat.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+    :root {
+      --gradA: #667eea; --gradB: #764ba2; --gradC: #4facfe; --gradD: #00f2fe;
+      --bg: #f5f7fb; --text: #222; --muted: #6b7280; --card: #fff;
+      --ring: rgba(79, 172, 254, .15);
+    }
+    body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+           background: linear-gradient(135deg, var(--gradA), var(--gradB)); min-height: 100vh; padding: 20px; }
+    .container { max-width: 1280px; margin: 0 auto; background: rgba(255,255,255,.95); border-radius: 20px; overflow: hidden;
+                 box-shadow: 0 20px 40px rgba(0,0,0,.12); backdrop-filter: blur(10px); }
+    .header { background: linear-gradient(135deg, var(--gradC), var(--gradD)); color:#fff; padding: 28px 24px; text-align:center; }
+    .header h1 { margin: 0 0 6px; font-size: 2rem; text-shadow: 0 2px 4px rgba(0,0,0,.25); }
+    .header p { margin: 0; opacity: .92; }
+
+    .content { display: grid; grid-template-columns: 400px 1fr; min-height: 680px; }
+    @media (max-width: 900px) { .content { grid-template-columns: 1fr; } }
+
+    .left { padding: 22px; background: var(--bg); border-right: 1px solid #e5e7eb; }
+    .section { background: var(--card); border-radius: 16px; padding: 16px; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,.06); }
+    .section h3 { margin: 0 0 10px; font-size: 1rem; color: var(--text); }
+
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+    label { font-weight: 600; font-size: .92rem; color: #374151; }
+    input, select, textarea { padding: 12px 14px; border-radius: 12px; border: 2px solid #e5e7eb; background: #fafbfc; font-size: .96rem; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--gradC); box-shadow: 0 0 0 4px var(--ring); background: #fff; }
+    textarea { min-height: 92px; resize: vertical; }
+
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 16px; border: 0; border-radius: 12px;
+           font-weight: 700; cursor: pointer; transition: transform .1s ease, box-shadow .2s ease; }
+    .btn-primary { color:#fff; background: linear-gradient(135deg, var(--gradA), var(--gradB)); box-shadow: 0 6px 20px rgba(102,126,234,.35); }
+    .btn-ghost { background: #eef2ff; color: #3730a3; font-weight: 600; }
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn:disabled { opacity:.6; cursor:not-allowed; transform:none; }
+
+    .help { font-size: .86rem; color: var(--muted); }
+
+    #map { height: 100%; min-height: 680px; }
+
+    .results { display: grid; gap: 8px; max-height: 260px; overflow: auto; }
+    .card { background: #fff; border-radius: 12px; padding: 12px; border: 1px solid #e5e7eb; }
+    .card .title { font-weight: 700; margin: 0 0 4px; }
+    .card .meta { font-size: .86rem; color: var(--muted); }
+    .pill { display:inline-block; padding: 2px 8px; font-size: .78rem; border-radius: 999px; border:1px solid #e5e7eb; background:#f9fafb; margin-right: 6px; }
+
+    .status { margin-top: 12px; padding: 10px; border-radius: 12px; font-weight: 600; text-align: center; opacity: 0; transition: all .25s ease; }
+    .status.show { opacity: 1; transform: translateY(-2px); }
+    .status.ok { background: linear-gradient(135deg, var(--gradC), var(--gradD)); color:#fff; }
+    .status.err { background: linear-gradient(135deg, #ff6b6b, #ee5a24); color:#fff; }
+
+    .tip { font-size:.8rem; color:#6b7280; margin-top:6px; }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>📍 Formulário Geolocalizado</h1>
-            <p>Clique no mapa para selecionar uma localização e envie seu comentário</p>
-        </div>
-        
-        <div class="content">
-            <div class="form-section">
-                <form id="commentForm">
-                    <div class="form-group">
-                        <label for="comment">💬 Seu Comentário:</label>
-                        <textarea 
-                            id="comment" 
-                            name="comment" 
-                            placeholder="Escreva seu comentário aqui..."
-                            required
-                        ></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>📍 Coordenadas:</label>
-                        <div class="coordinates">
-                            <div>
-                                <input 
-                                    type="number" 
-                                    id="latitude" 
-                                    name="latitude" 
-                                    placeholder="Latitude" 
-                                    step="any"
-                                    readonly
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <input 
-                                    type="number" 
-                                    id="longitude" 
-                                    name="longitude" 
-                                    placeholder="Longitude" 
-                                    step="any"
-                                    readonly
-                                    required
-                                />
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <button type="submit" class="submit-btn" id="submitBtn">
-                        🚀 Enviar Comentário
-                    </button>
-                    
-                    <div id="statusMessage" class="status-message"></div>
-                </form>
-            </div>
-            
-            <div class="map-section">
-                <div class="map-info">
-                    <h3>🗺️ Como usar:</h3>
-                    <p>• Clique no mapa para marcar um ponto</p>
-                    <p>• As coordenadas serão preenchidas automaticamente</p>
-                    <p>• Escreva seu comentário e envie</p>
-                </div>
-                <div id="map"></div>
-            </div>
-        </div>
+  <div class="container">
+    <div class="header">
+      <h1>🧘‍♀️ Encontre locais de meditação perto de você</h1>
+      <p>Busque por endereço ou use sua localização. Veja no mapa e na lista os pontos mais próximos.</p>
     </div>
 
-    <!-- Leaflet JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-    
-    <script>
-        // CONFIGURAÇÃO DO FIREBASE
-        // IMPORTANTE: Substitua pela sua configuração do Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyDfDHknknll6FFgaDjA0Hqavvcw5nmJhnw",
-  authDomain: "projeto-01-eecc9.firebaseapp.com",
-  projectId: "projeto-01-eecc9",
-  storageBucket: "projeto-01-eecc9.firebasestorage.app",
-  messagingSenderId: "345935062507",
-  appId: "1:345935062507:web:acc73f4af80223a5e9a5ae"
-        };
+    <div class="content">
+      <!-- Painel esquerdo -->
+      <aside class="left">
+        <!-- Busca -->
+        <section class="section">
+          <h3>🔎 Buscar ponto próximo</h3>
+          <div class="field">
+            <label for="address">Endereço ou bairro</label>
+            <input id="address" type="text" placeholder="Ex.: Av. Paulista, 1000, São Paulo" />
+            <div class="row">
+              <button id="btnGeocode" class="btn btn-ghost" type="button">Buscar endereço</button>
+              <button id="btnMyLoc" class="btn btn-primary" type="button">Usar minha localização</button>
+            </div>
+            <p class="help">Dica: você pode digitar o endereço completo, CEP ou ponto de referência.</p>
+          </div>
+          <div class="row-3">
+            <div class="field">
+              <label for="radius">Raio</label>
+              <select id="radius">
+                <option value="1">1 km</option>
+                <option value="3">3 km</option>
+                <option value="5" selected>5 km</option>
+                <option value="10">10 km</option>
+                <option value="20">20 km</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="limit">Máx. resultados</label>
+              <select id="limit">
+                <option>5</option>
+                <option selected>10</option>
+                <option>20</option>
+                <option>50</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>&nbsp;</label>
+              <button id="btnSearch" class="btn btn-primary" type="button">Mostrar próximos</button>
+            </div>
+          </div>
+          <div id="searchStatus" class="status"></div>
+        </section>
 
-        // Inicializar Firebase
-        let db;
-        try {
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-            console.log('Firebase inicializado com sucesso');
-        } catch (error) {
-            console.error('Erro ao inicializar Firebase:', error);
-            showStatus('Erro: Configure o Firebase primeiro', 'error');
-        }
+        <!-- Resultados -->
+        <section class="section">
+          <h3>📍 Resultados próximos</h3>
+          <div id="results" class="results"></div>
+          <p class="tip">Clique em um item para centralizar o mapa. "Rotas" abre o Google Maps com direções.</p>
+        </section>
 
-        // Inicializar o mapa
-        const map = L.map('map').setView([-23.5505, -46.6333], 10); // São Paulo como centro inicial
+        <!-- Cadastro rápido (admin simples) -->
+        <section class="section">
+          <h3>➕ Cadastrar novo local</h3>
+          <div class="field"><label for="locName">Nome do local</label><input id="locName" placeholder="Ex.: Praça da Árvore – Grupo Falun Dafa" /></div>
+          <div class="field"><label for="locDesc">Descrição/Observações</label><textarea id="locDesc" placeholder="Dias, horários, ponto de encontro, contato…"></textarea></div>
+          <div class="row">
+            <div class="field"><label for="locLat">Latitude</label><input id="locLat" type="number" step="any" placeholder="-23.5" /></div>
+            <div class="field"><label for="locLng">Longitude</label><input id="locLng" type="number" step="any" placeholder="-46.6" /></div>
+          </div>
+          <div class="row">
+            <button id="btnPickFromMap" class="btn btn-ghost" type="button">Pegar do mapa</button>
+            <button id="btnSaveLoc" class="btn btn-primary" type="button">Salvar local</button>
+          </div>
+          <div id="saveStatus" class="status"></div>
+        </section>
+      </aside>
 
-        // Adicionar camada do OpenStreetMap
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
-            maxZoom: 19
-        }).addTo(map);
+      <!-- Mapa -->
+      <main>
+        <div id="map"></div>
+      </main>
+    </div>
+  </div>
 
-        // Variável para armazenar o marcador atual
-        let currentMarker = null;
+  <!-- Leaflet JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 
-        // Função para adicionar marcador no mapa
-        function addMarker(lat, lng) {
-            // Remover marcador anterior se existir
-            if (currentMarker) {
-                map.removeLayer(currentMarker);
-            }
-            
-            // Criar novo marcador com ícone personalizado
-            const customIcon = L.divIcon({
-                className: 'custom-marker',
-                html: '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 10px rgba(0,0,0,0.3);"></div>',
-                iconSize: [26, 26],
-                iconAnchor: [13, 13]
-            });
-            
-            currentMarker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
-            
-            // Atualizar campos de coordenadas
-            document.getElementById('latitude').value = lat.toFixed(6);
-            document.getElementById('longitude').value = lng.toFixed(6);
-        }
+  <script>
+    // =============================
+    //  CONFIGURAÇÃO DO FIREBASE
+    //  Substitua pelos seus valores – evite expor chaves sensíveis em repositórios públicos.
+    // =============================
+    const firebaseConfig = {
+      apiKey: "SUA_API_KEY_AQUI",
+      authDomain: "seu-project-id.firebaseapp.com",
+      projectId: "seu-project-id",
+      storageBucket: "seu-project-id.appspot.com",
+      messagingSenderId: "",
+      appId: ""
+    };
 
-        // Evento de clique no mapa
-        map.on('click', function(e) {
-            const { lat, lng } = e.latlng;
-            addMarker(lat, lng);
+    let db = null;
+    try { firebase.initializeApp(firebaseConfig); db = firebase.firestore(); }
+    catch (e) { console.error('Firebase init error', e); }
+
+    // =============================
+    //  MAPA
+    // =============================
+    const map = L.map('map').setView([-23.5505, -46.6333], 12); // SP como fallback
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors', maxZoom: 19
+    }).addTo(map);
+
+    const markersLayer = L.layerGroup().addTo(map);
+    let originMarker = null;   // marcador da origem (usuário/endereço)
+    let radiusCircle = null;   // círculo de raio
+
+    function status(el, msg, ok=true) {
+      el.textContent = msg; el.className = `status ${ok ? 'ok' : 'err'} show`;
+      setTimeout(()=> el.classList.remove('show'), 3500);
+    }
+
+    function addOrigin(lat, lng) {
+      if (originMarker) map.removeLayer(originMarker);
+      originMarker = L.marker([lat,lng], { title: 'Origem' }).addTo(map);
+      map.setView([lat,lng], 14);
+    }
+
+    function drawRadius(lat, lng, km) {
+      if (radiusCircle) map.removeLayer(radiusCircle);
+      radiusCircle = L.circle([lat, lng], { radius: km * 1000, color: '#3b82f6', weight: 2, fillOpacity: .07 }).addTo(map);
+    }
+
+    // Haversine (distância em km)
+    function haversine(aLat, aLng, bLat, bLng) {
+      const toRad = d => d * Math.PI / 180;
+      const R = 6371; // km
+      const dLat = toRad(bLat - aLat);
+      const dLng = toRad(bLng - aLng);
+      const s1 = Math.sin(dLat/2) ** 2;
+      const s2 = Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * (Math.sin(dLng/2) ** 2);
+      return 2 * R * Math.asin(Math.sqrt(s1 + s2));
+    }
+
+    // =============================
+    //  CARREGAR LOCAIS DO FIRESTORE
+    //  Coleção: 'locations'  (campos recomendados)
+    //   - name: string
+    //   - description: string
+    //   - lat: number
+    //   - lng: number
+    //   - schedule: string (opcional)
+    //   - tags: array<string> (opcional)
+    // =============================
+    async function loadLocations() {
+      if (!db) { return []; }
+      const snap = await db.collection('locations').get();
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+
+    function renderMarkers(locs) {
+      markersLayer.clearLayers();
+      locs.forEach(loc => {
+        const m = L.marker([loc.lat, loc.lng]).addTo(markersLayer);
+        const html = `
+          <b>${loc.name ?? 'Local sem nome'}</b><br/>
+          ${loc.description ? `<div style="margin:6px 0">${loc.description}</div>` : ''}
+          ${loc.schedule ? `<div><b>Horários:</b> ${loc.schedule}</div>` : ''}
+          <div style="margin-top:8px"><a target="_blank" href="https://www.google.com/maps/dir/?api=1&destination=${loc.lat},${loc.lng}">Rotas no Google Maps</a></div>
+        `;
+        m.bindPopup(html);
+      });
+    }
+
+    function renderResults(list, origin) {
+      const box = document.getElementById('results');
+      box.innerHTML = '';
+      if (!list.length) { box.innerHTML = '<div class="help">Nenhum local encontrado nesse raio.</div>'; return; }
+      list.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.innerHTML = `
+          <div class="title">${item.name}</div>
+          <div class="meta">${item.distance.toFixed(2)} km • ${item.description ?? ''}</div>
+          ${ item.schedule ? `<div class="pill">Horários: ${item.schedule}</div>` : '' }
+          <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap">
+            <button class="btn btn-ghost" data-center="${item.lat},${item.lng}">Ver no mapa</button>
+            <a class="btn btn-primary" target="_blank" href="https://www.google.com/maps/dir/?api=1&origin=${origin.lat},${origin.lng}&destination=${item.lat},${item.lng}">Rotas</a>
+          </div>
+        `;
+        div.querySelector('button[data-center]')?.addEventListener('click', (ev) => {
+          const [lat,lng] = ev.currentTarget.dataset.center.split(',').map(Number);
+          map.setView([lat,lng], 16);
         });
+        box.appendChild(div);
+      });
+    }
 
-        // Função para mostrar mensagens de status
-        function showStatus(message, type) {
-            const statusElement = document.getElementById('statusMessage');
-            statusElement.textContent = message;
-            statusElement.className = `status-message ${type} show`;
-            
-            setTimeout(() => {
-                statusElement.classList.remove('show');
-            }, 4000);
-        }
+    // Core da busca: recebe origem e aplica raio/limite
+    function nearest(origin, locs, km, limit) {
+      const withDist = locs.map(l => ({ ...l, distance: haversine(origin.lat, origin.lng, l.lat, l.lng) }))
+                           .filter(l => !Number.isNaN(l.distance) && l.distance <= km)
+                           .sort((a,b) => a.distance - b.distance)
+                           .slice(0, limit);
+      return withDist;
+    }
 
-        // Função para salvar dados no Firebase
-        async function saveToFirebase(data) {
-            try {
-                if (!db) {
-                    throw new Error('Firebase não está configurado');
-                }
-                
-                const docRef = await db.collection('comments').add({
-                    ...data,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                console.log('Documento salvo com ID:', docRef.id);
-                return docRef.id;
-            } catch (error) {
-                console.error('Erro ao salvar no Firebase:', error);
-                throw error;
-            }
-        }
+    // =============================
+    //  GEOCODING (Nominatim/OSM) – uso leve, sujeito a limites. Considere um serviço com chave para produção.
+    // =============================
+    async function geocode(q) {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&addressdetails=1`;
+      const resp = await fetch(url, { headers: { 'Accept-Language': 'pt-BR' } });
+      if (!resp.ok) throw new Error('Falha ao geocodificar');
+      const data = await resp.json();
+      if (!data.length) throw new Error('Endereço não encontrado');
+      const { lat, lon } = data[0];
+      return { lat: parseFloat(lat), lng: parseFloat(lon) };
+    }
 
-        // Manipular envio do formulário
-        document.getElementById('commentForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const submitBtn = document.getElementById('submitBtn');
-            const comment = document.getElementById('comment').value.trim();
-            const latitude = parseFloat(document.getElementById('latitude').value);
-            const longitude = parseFloat(document.getElementById('longitude').value);
-            
-            // Validação
-            if (!comment) {
-                showStatus('Por favor, escreva um comentário', 'error');
-                return;
-            }
-            
-            if (!latitude || !longitude) {
-                showStatus('Por favor, clique no mapa para selecionar uma localização', 'error');
-                return;
-            }
-            
-            // Desabilitar botão durante o envio
-            submitBtn.disabled = true;
-            submitBtn.textContent = '⏳ Enviando...';
-            
-            try {
-                const data = {
-                    comment: comment,
-                    latitude: latitude,
-                    longitude: longitude,
-                    userAgent: navigator.userAgent,
-                    timestamp: new Date().toISOString()
-                };
-                
-                await saveToFirebase(data);
-                
-                showStatus('✅ Comentário salvo com sucesso!', 'success');
-                
-                // Limpar formulário
-                document.getElementById('comment').value = '';
-                document.getElementById('latitude').value = '';
-                document.getElementById('longitude').value = '';
-                
-                // Remover marcador do mapa
-                if (currentMarker) {
-                    map.removeLayer(currentMarker);
-                    currentMarker = null;
-                }
-                
-            } catch (error) {
-                console.error('Erro:', error);
-                showStatus('❌ Erro ao salvar. Verifique a configuração do Firebase.', 'error');
-            } finally {
-                // Reabilitar botão
-                submitBtn.disabled = false;
-                submitBtn.textContent = '🚀 Enviar Comentário';
-            }
-        });
+    // =============================
+    //  UI HANDLERS
+    // =============================
+    let allLocations = [];
+    let lastClickedLatLng = null; // para pegar lat/lng do mapa no cadastro
 
-        // Tentar obter localização do usuário
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                function(position) {
-                    const lat = position.coords.latitude;
-                    const lng = position.coords.longitude;
-                    map.setView([lat, lng], 13);
-                },
-                function(error) {
-                    console.log('Erro ao obter localização:', error);
-                    // Manter São Paulo como centro padrão
-                }
-            );
-        }
+    // Marcar clique no mapa para auxiliar cadastro
+    map.on('click', (e) => { lastClickedLatLng = e.latlng; });
 
-        // Adicionar animação de carregamento ao mapa
-        map.whenReady(function() {
-            console.log('Mapa carregado com sucesso');
-        });
-    </script>
+    // Inicialização: tentar pegar geolocalização do usuário e carregar locais
+    (async function init() {
+      try {
+        allLocations = await loadLocations();
+        renderMarkers(allLocations);
+      } catch (e) { console.warn('Não foi possível carregar locations:', e); }
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          const lat = pos.coords.latitude, lng = pos.coords.longitude;
+          addOrigin(lat, lng);
+          map.setView([lat,lng], 14);
+        }, () => {/* ignore */});
+      }
+    })();
+
+    // Botão: geocodificar endereço
+    document.getElementById('btnGeocode').addEventListener('click', async () => {
+      const q = document.getElementById('address').value.trim();
+      const statusEl = document.getElementById('searchStatus');
+      if (!q) return status(statusEl, 'Digite um endereço para buscar', false);
+      try {
+        status(statusEl, 'Localizando endereço…');
+        const { lat, lng } = await geocode(q);
+        addOrigin(lat, lng);
+        status(statusEl, 'Endereço encontrado. Agora clique em "Mostrar próximos".');
+      } catch (e) {
+        status(statusEl, e.message || 'Não foi possível encontrar esse endereço', false);
+      }
+    });
+
+    // Botão: usar minha localização
+    document.getElementById('btnMyLoc').addEventListener('click', async () => {
+      const statusEl = document.getElementById('searchStatus');
+      if (!navigator.geolocation) return status(statusEl, 'Geolocalização não suportada neste navegador', false);
+      status(statusEl, 'Obtendo sua localização…');
+      navigator.geolocation.getCurrentPosition(pos => {
+        const lat = pos.coords.latitude, lng = pos.coords.longitude;
+        addOrigin(lat, lng);
+        status(statusEl, 'Localização definida. Agora clique em "Mostrar próximos".');
+      }, () => status(statusEl, 'Não foi possível obter sua localização', false));
+    });
+
+    // Botão: mostrar próximos
+    document.getElementById('btnSearch').addEventListener('click', () => {
+      const statusEl = document.getElementById('searchStatus');
+      const r = parseFloat(document.getElementById('radius').value);
+      const limit = parseInt(document.getElementById('limit').value, 10);
+      if (!originMarker) return status(statusEl, 'Defina uma origem (endereço ou sua localização).', false);
+      const { lat, lng } = originMarker.getLatLng();
+      drawRadius(lat, lng, r);
+      const list = nearest({ lat, lng }, allLocations, r, limit);
+      renderResults(list, { lat, lng });
+      renderMarkers(allLocations); // re-render para manter todos no mapa
+      status(statusEl, list.length ? `Encontrados ${list.length} locais dentro de ${r} km` : 'Nenhum local nesse raio', !!list.length);
+    });
+
+    // Cadastro: pegar do mapa
+    document.getElementById('btnPickFromMap').addEventListener('click', () => {
+      const saveEl = document.getElementById('saveStatus');
+      if (!lastClickedLatLng) return status(saveEl, 'Clique no mapa primeiro para capturar as coordenadas.', false);
+      document.getElementById('locLat').value = lastClickedLatLng.lat.toFixed(6);
+      document.getElementById('locLng').value = lastClickedLatLng.lng.toFixed(6);
+      status(saveEl, 'Coordenadas preenchidas a partir do mapa.');
+    });
+
+    // Cadastro: salvar no Firestore
+    document.getElementById('btnSaveLoc').addEventListener('click', async () => {
+      const name = document.getElementById('locName').value.trim();
+      const description = document.getElementById('locDesc').value.trim();
+      const lat = parseFloat(document.getElementById('locLat').value);
+      const lng = parseFloat(document.getElementById('locLng').value);
+      const saveEl = document.getElementById('saveStatus');
+
+      if (!name || Number.isNaN(lat) || Number.isNaN(lng)) return status(saveEl, 'Preencha nome, latitude e longitude.', false);
+      if (!db) return status(saveEl, 'Firebase não configurado.', false);
+
+      try {
+        const doc = { name, description, lat, lng, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+        const ref = await db.collection('locations').add(doc);
+        status(saveEl, 'Local salvo com sucesso!');
+        // adicionar no array e no mapa
+        allLocations.push({ id: ref.id, ...doc });
+        renderMarkers(allLocations);
+        // limpar campos
+        ['locName','locDesc','locLat','locLng'].forEach(id => document.getElementById(id).value = '');
+      } catch (e) {
+        console.error(e); status(saveEl, 'Erro ao salvar local. Verifique as regras do Firestore.', false);
+      }
+    });
+  </script>
 </body>
-
 </html>
+
